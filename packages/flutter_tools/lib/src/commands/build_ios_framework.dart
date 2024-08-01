@@ -518,6 +518,7 @@ end
         'SYMROOT=${iPhoneBuildOutput.path}',
         'ONLY_ACTIVE_ARCH=NO', // No device targeted, so build all valid architectures.
         'BUILD_LIBRARY_FOR_DISTRIBUTION=YES',
+        'OTHER_LDFLAGS=$(inherited) -make_mergeable',
         if (boolArg('static'))
           'MACH_O_TYPE=staticlib',
       ];
@@ -544,6 +545,7 @@ end
         'SYMROOT=${simulatorBuildOutput.path}',
         'ONLY_ACTIVE_ARCH=NO', // No device targeted, so build all valid architectures.
         'BUILD_LIBRARY_FOR_DISTRIBUTION=YES',
+        'OTHER_LDFLAGS=$(inherited) -make_mergeable',
         if (boolArg('static'))
           'MACH_O_TYPE=staticlib',
       ];
