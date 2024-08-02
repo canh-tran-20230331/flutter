@@ -301,6 +301,7 @@ class AOTSnapshotter {
       '-Xlinker', '-rpath', '-Xlinker', '@executable_path/Frameworks',
       '-Xlinker', '-rpath', '-Xlinker', '@loader_path/Frameworks',
       '-fapplication-extension',
+      '-Xlinker', '-make_mergeable',
       '-install_name', '@rpath/App.framework/App',
       '-o', appLib,
       assemblyO,
