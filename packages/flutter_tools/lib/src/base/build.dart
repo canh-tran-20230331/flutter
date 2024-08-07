@@ -249,7 +249,7 @@ class AOTSnapshotter {
 
   /// Builds an iOS or macOS framework at [outputPath]/App.framework from the assembly
   /// source at [assemblyPath].
-  Future<int> _buildFramework({
+  Future<int> _buildFrameworkDynamic({
     required DarwinArch appleArch,
     required bool isIOS,
     String? sdkRoot,
@@ -320,6 +320,99 @@ class AOTSnapshotter {
         final RunResult stripResult = await _xcode.strip(<String>['-x', appLib, '-o', appLib]);
         if (stripResult.exitCode != 0) {
           _logger.printError('Failed to strip debugging symbols from the generated AOT snapshot - strip terminated with exit code ${stripResult.exitCode}');
+          return stripResult.exitCode;
+        }
+      }
+    } else {
+      assert(!stripAfterBuild);
+    }
+
+    return 0;
+  }
+  /// Builds an iOS or macOS framework at [outputPath]/App.framework from the assembly
+  /// source at [assemblyPath].
+  Future<int> _buildFramework({
+    required DarwinArch appleArch,
+    required bool isIOS,
+    String? sdkRoot,
+    required String assemblyPath,
+    required String outputPath,
+    required bool quiet,
+    required bool stripAfterBuild,
+    required bool extractAppleDebugSymbols,
+  }) async {
+    final String targetArch = appleArch.name;
+    if (!quiet) {
+      _logger.printStatus('Building App.framework for $targetArch...');
+    }
+
+    final List<String> commonBuildOptions = <String>[
+      '-arch',
+      targetArch,
+      if (isIOS)
+        // When the minimum version is updated, remember to update
+        // template MinimumOSVersion.
+        // https://github.com/flutter/flutter/pull/62902
+        '-miphoneos-version-min=12.0',
+      if (sdkRoot != null) ...<String>[
+        '-isysroot',
+        sdkRoot,
+      ],
+    ];
+
+    final String assemblyO =
+        _fileSystem.path.join(outputPath, 'snapshot_assembly.o');
+
+    // Compile source to object file
+    final RunResult compileResult = await _xcode.cc(<String>[
+      ...commonBuildOptions,
+      '-c',
+      assemblyPath,
+      '-o',
+      assemblyO,
+    ]);
+    if (compileResult.exitCode != 0) {
+      _logger.printError(
+          'Failed to compile AOT snapshot. Compiler terminated with exit code ${compileResult.exitCode}');
+      return compileResult.exitCode;
+    }
+
+    final String frameworkDir =
+        _fileSystem.path.join(outputPath, 'App.framework');
+    _fileSystem.directory(frameworkDir).createSync(recursive: true);
+    final String appLib = _fileSystem.path.join(frameworkDir, 'App');
+    final List<String> linkArgs = <String>[
+      ...commonBuildOptions,
+      '-static',
+      '-o',
+      appLib,
+      assemblyO,
+    ];
+
+    // Link object file to create static library
+    final RunResult linkResult = await _xcode.clang(linkArgs);
+    if (linkResult.exitCode != 0) {
+      _logger.printError(
+          'Failed to link AOT snapshot. Linker terminated with exit code ${linkResult.exitCode}');
+      return linkResult.exitCode;
+    }
+
+    if (extractAppleDebugSymbols) {
+      final RunResult dsymResult =
+          await _xcode.dsymutil(<String>['-o', '$frameworkDir.dSYM', appLib]);
+      if (dsymResult.exitCode != 0) {
+        _logger.printError(
+            'Failed to generate dSYM - dsymutil terminated with exit code ${dsymResult.exitCode}');
+        return dsymResult.exitCode;
+      }
+
+      if (stripAfterBuild) {
+        // See https://www.unix.com/man-page/osx/1/strip/ for arguments
+        final RunResult stripResult =
+            await _xcode.strip(<String>['-x', appLib, '-o', appLib]);
+        if (stripResult.exitCode != 0) {
+          _logger.printError(
+              'Failed to strip debugging symbols from the generated AOT snapshot - strip terminated with exit code ${stripResult.exitCode}');
           return stripResult.exitCode;
         }
       }
