@@ -684,7 +684,6 @@ Future<void> _createStubAppFramework(File outputFile, Environment environment,
       '-Xlinker', '-rpath', '-Xlinker', '@loader_path/Frameworks',
       '-Xlinker', '-make_mergeable',
       '-fapplication-extension',
-      '-install_name', '@rpath/App.framework/App',
       '-isysroot', sdkRoot,
       '-o', outputFile.path,
     ]);
