@@ -297,11 +297,7 @@ class AOTSnapshotter {
     final String appLib = _fileSystem.path.join(frameworkDir, 'App');
     final List<String> linkArgs = <String>[
       ...commonBuildOptions,
-      '-staticlib',
-      '-Xlinker', '-rpath', '-Xlinker', '@executable_path/Frameworks',
-      '-Xlinker', '-rpath', '-Xlinker', '@loader_path/Frameworks',
-      '-fapplication-extension',
-      '-Xlinker', '-make_mergeable',
+      '-static',
       '-o', appLib,
       assemblyO,
     ];

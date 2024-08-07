@@ -674,16 +674,12 @@ Future<void> _createStubAppFramework(File outputFile, Environment environment,
       'c',
       for (final String arch in iosArchNames ?? <String>{}) ...<String>['-arch', arch],
       stubSource.path,
-      '-staticlib',
+      '-static',
       // Keep version in sync with AOTSnapshotter flag
       if (environmentType == EnvironmentType.physical)
         '-miphoneos-version-min=12.0'
       else
         '-miphonesimulator-version-min=12.0',
-      '-Xlinker', '-rpath', '-Xlinker', '@executable_path/Frameworks',
-      '-Xlinker', '-rpath', '-Xlinker', '@loader_path/Frameworks',
-      '-Xlinker', '-make_mergeable',
-      '-fapplication-extension',
       '-isysroot', sdkRoot,
       '-o', outputFile.path,
     ]);
